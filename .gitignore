@@ -1,4 +1,7 @@
 node_modules/
 .next/
-.npm-cache/
+.env
 .env.local
+.env.*.local
+coverage/
+*.log

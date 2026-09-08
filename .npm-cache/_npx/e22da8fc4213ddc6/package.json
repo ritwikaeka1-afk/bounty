@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "plugins": "^1.3.4"
+  },
+  "_npx": {
+    "packages": [
+      "plugins"
+    ]
+  }
+}
