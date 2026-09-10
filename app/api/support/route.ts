@@ -1,18 +1,6 @@
 import { NextResponse } from "next/server";
 
 export async function POST() {
-  const supportEmail = process.env.OWNER_SUPPORT_EMAIL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supportEmail || !supabaseServiceRoleKey) {
-    return NextResponse.json(
-      { error: "Server configuration is incomplete." },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({
-    ok: true,
-    message: "Support endpoint is configured.",
-  });
+  // Legacy endpoint never persisted requests. New form uses authenticated RPC.
+  return NextResponse.json({ error: "Please sign in and use the Help form to save a support request." }, { status: 410 });
 }

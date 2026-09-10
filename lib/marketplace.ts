@@ -32,6 +32,7 @@ export async function uploadBountyImages(bountyId: string, files: File[]) {
   if (!userData.user) throw new Error("Sign-in required");
   const urls: string[] = [];
   for (const [index, file] of files.slice(0, 4).entries()) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error("Use JPEG, PNG, or WebP images up to 5 MB.");
     const extension = file.name.split(".").pop() || "jpg";
     const path = `${userData.user.id}/${bountyId}/${Date.now()}-${index}.${extension}`;
     const { error } = await supabase.storage.from("bounty-images").upload(path, file, { contentType: file.type });
@@ -83,6 +84,7 @@ export async function updateMyProfileDetails(input: {
 }
 
 export async function uploadProfileAvatar(file: File) {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error("Use a JPEG, PNG, or WebP image up to 5 MB.");
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Sign-in required");

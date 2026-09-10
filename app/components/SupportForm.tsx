@@ -1,80 +1,9 @@
 "use client";
-
-import { FormEvent, useState } from "react";
-
-declare global {
-  interface Window {
-    grecaptcha?: {
-      ready: (callback: () => void) => void;
-      execute: (
-        siteKey: string,
-        options: { action: string }
-      ) => Promise<string>;
-    };
-  }
+import { useState } from "react";
+import { rpc } from "../../lib/data";
+import { errorMessage } from "../../lib/rules";
+export function SupportForm({bountyId}:{bountyId?:string}){
+ const [status,S]=useState(""),[busy,B]=useState(false);
+ return <form onSubmit={async e=>{e.preventDefault();const form=e.currentTarget,f=new FormData(form);B(true);S("");try{const id=await rpc<string>("send_support_request",{p_subject:f.get("subject"),p_message:f.get("message"),p_bounty:bountyId||null});S(`Request saved. Reference: ${id}. This is not an emergency service.`);form.reset();}catch(e){S(errorMessage(e));}finally{B(false);}}}><label>Subject<input name="subject" required minLength={3} maxLength={120}/></label><label>How can we help?<textarea name="message" required minLength={10} maxLength={3000} rows={5}/></label><button className="primary" disabled={busy}>{busy?"Sending…":"Send support request"}</button>{status&&<p role="status">{status}</p>}</form>;
 }
 
-export function SupportForm() {
-  const [status, setStatus] = useState("");
-
-  async function submitSupport(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus("Sending...");
-
-    const form = new FormData(event.currentTarget);
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-
-    if (!siteKey || !window.grecaptcha) {
-      setStatus("Safety check is still loading. Please try again.");
-      return;
-    }
-
-    window.grecaptcha.ready(async () => {
-      const captchaToken = await window.grecaptcha!.execute(siteKey, {
-        action: "support_submit",
-      });
-
-      const response = await fetch("/api/support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject: form.get("subject"),
-          message: form.get("message"),
-          captchaToken,
-        }),
-      });
-
-      const result = await response.json();
-      setStatus(
-        response.ok
-          ? "Thanks — your request was received."
-          : result.error || "Unable to send your request."
-      );
-    });
-  }
-
-  return (
-    <form onSubmit={submitSupport}>
-      <label>
-        Subject
-        <input name="subject" required maxLength={120} />
-      </label>
-
-      <label>
-        How can we help?
-        <textarea name="message" required maxLength={3000} rows={6} />
-      </label>
-
-      <button className="primary" type="submit">
-        Send support request
-      </button>
-
-      <p>
-        This form is protected by reCAPTCHA and the Google Privacy Policy and
-        Terms of Service apply.
-      </p>
-
-      {status && <p role="status">{status}</p>}
-    </form>
-  );
-}

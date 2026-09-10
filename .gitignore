@@ -5,3 +5,5 @@ node_modules/
 .env.*.local
 coverage/
 *.log
+.npm-cache/
+*.tsbuildinfo
