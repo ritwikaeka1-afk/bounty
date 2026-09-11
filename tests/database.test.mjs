@@ -33,6 +33,34 @@ before(async()=>{
  }
 });
 after(()=>db.close());
+test('beta enrollment requires confirmed email, is reversible, and preserves student accounts',async()=>{
+ await admin('select set_beta_access(false)');
+ const tester=randomUUID(),unconfirmed=randomUUID();
+ await admin("insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,'tester@example.com',now(),'{\"display_name\":\"Tester\"}')",[tester]);
+ await admin("insert into auth.users(id,email,raw_user_meta_data) values($1,'unconfirmed@example.com','{\"email_verified\":true}')",[unconfirmed]);
+ assert.equal((await as(tester,'select enroll_beta_tester() as enrolled')).rows[0].enrolled,false);
+ await assert.rejects(()=>as(tester,'select set_beta_access(true)'));
+ await assert.rejects(()=>as(tester,'update beta_access_settings set enabled=true'));
+ await admin('select set_beta_access(true)');
+ await assert.rejects(()=>as(unconfirmed,'select enroll_beta_tester()'));
+ assert.equal((await as(tester,'select enroll_beta_tester() as enrolled')).rows[0].enrolled,true);
+ await as(tester,'select enroll_beta_tester()');
+ assert.equal((await as(tester,'select count(*)::int as count from credit_accounts')).rows[0].count,1);
+ assert.equal((await as(tester,'select available_balance from credit_accounts')).rows[0].available_balance,0);
+ assert.equal((await as(tester,'select verification_status,beta_access_granted from profiles')).rows[0].beta_access_granted,true);
+ const betaTask=await create();
+ assert.equal((await as(tester,'select id from bounties where id=$1',[betaTask])).rows.length,1);
+ await as(tester,"select submit_proposal($1,'I can help test this bounty')",[betaTask]);
+ await admin('select set_beta_access(false)');
+ assert.equal((await as(tester,'select id from bounties where id=$1',[betaTask])).rows.length,0);
+ await assert.rejects(()=>as(tester,"select submit_proposal($1,'I can help test this bounty')",[betaTask]));
+ assert.equal((await as(owner,'select verification_status from profiles')).rows[0].verification_status,'verified');
+ await admin('select set_beta_access(true)');
+ await as(tester,'select enroll_beta_tester()');
+ await admin("update profiles set verification_status='rejected' where id=$1",[tester]);
+ assert.equal((await as(tester,'select enroll_beta_tester() as enrolled')).rows[0].enrolled,false);
+ await admin('select set_beta_access(false)');
+});
 test('names are private and legacy display names remain intact',async()=>{
  const names=(await as(owner,'select * from profile_names')).rows;assert.equal(names.length,1);assert.equal(names[0].last_name,'O’Neil');
  await as(owner,"select save_my_names('李','')");assert.equal((await one('select display_name from profiles')).display_name,'Owner');
