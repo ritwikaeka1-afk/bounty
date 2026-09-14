@@ -188,3 +188,21 @@ test('dispute resolution requires operator access and returns reserved credits o
  assert.equal((await as(owner,'select available_balance from credit_accounts')).rows[0].available_balance,before);
  assert.equal((await one('select status from bounties where id=$1',[id])).status,'cancelled');
 });
+
+test('email queue is private, deduplicated, opt-out aware and requires confirmed email',async()=>{
+ const recipient=randomUUID(),unconfirmed=randomUUID();
+ await admin("insert into auth.users(id,email,email_confirmed_at) values($1,'emailtester@ucla.edu',now()),($2,'unconfirmedmail@ucla.edu',null)",[recipient,unconfirmed]);
+ await admin("update profiles set verification_status='verified' where id in ($1,$2)",[recipient,unconfirmed]);
+ await admin("insert into notification_preferences(profile_id,quiet_start,quiet_end) values($1,0,0),($2,0,0)",[recipient,unconfirmed]);
+ const first=(await admin("insert into notifications(profile_id,kind,message,dedupe_key) values($1,'submitted','Task status update',$2) returning id",[recipient,randomUUID()])).rows[0].id;
+ await admin("insert into notifications(profile_id,kind,message,dedupe_key) values($1,'submitted','Task status update',$2)",[unconfirmed,randomUUID()]);
+ await assert.rejects(()=>as(recipient,'select * from email_deliveries'));
+ await assert.rejects(()=>as(recipient,'select * from claim_email_deliveries()'));
+ const claim=(await admin('select * from claim_email_deliveries()')).rows;
+ assert.equal(claim.length,1);assert.equal(claim[0].notification_id,first);
+ assert.equal((await admin('select * from claim_email_deliveries()')).rows.length,0);
+ await as(recipient,'update notification_preferences set email_status_enabled=false');
+ assert.equal((await admin('select email_delivery_allowed($1) as allowed',[first])).rows[0].allowed,false);
+ await admin("update email_deliveries set next_attempt_at=now()-interval '1 minute'");
+ assert.equal((await admin('select * from claim_email_deliveries()')).rows.length,0);
+});

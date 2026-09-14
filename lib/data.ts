@@ -4,8 +4,8 @@ export type Bounty = { id: string; creator_id: string; accepted_by: string | nul
 export type Profile = { id: string; display_name: string; bio: string | null; major: string | null; graduation_year: number | null; skills: string[]; interests: string[]; experience: "beginner" | "intermediate" | "advanced"; avatar_url: string | null; verification_status: string };
 export type Notice = { id: string; bounty_id: string | null; kind: string; message: string; read_at: string | null; created_at: string };
 export type Offer = { id: string; bounty_id: string; bidder_id: string; message: string; status: string; bounty_revision: number };
-export type Preferences = { reminders_enabled: boolean; push_enabled: boolean; timezone: string; quiet_start: number; quiet_end: number };
-export const defaultPreferences: Preferences = { reminders_enabled: true, push_enabled: false, timezone: "America/Los_Angeles", quiet_start: 22, quiet_end: 8 };
+export type Preferences = { email_status_enabled: boolean; email_messages_enabled: boolean; reminders_enabled: boolean; push_enabled: boolean; timezone: string; quiet_start: number; quiet_end: number };
+export const defaultPreferences: Preferences = { email_status_enabled: true, email_messages_enabled: true, reminders_enabled: true, push_enabled: false, timezone: "America/Los_Angeles", quiet_start: 22, quiet_end: 8 };
 export const bountyColumns = "id,creator_id,accepted_by,title,description,category,reward_credits,status,due_at,created_at,updated_at,completion_criteria,estimated_minutes,location_type,location_name,revision,reminders_dismissed";
 // Fetch every visible page so older assignments and reserved credits are not
 // silently dropped by PostgREST's row limit. RLS still scopes every request.
