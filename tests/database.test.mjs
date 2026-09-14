@@ -33,6 +33,22 @@ before(async()=>{
  }
 });
 after(()=>db.close());
+test('fixed categories accept custom titles and keep legacy templates intact',async()=>{
+ const categories=(await as(owner,"select id,category from bounty_templates where subcategory='Category' order by category")).rows;
+ assert.deepEqual(categories.map(c=>c.category),['Academic','Career','Creative','Errands','Events','Physical','Tech']);
+ const academic=categories.find(c=>c.category==='Academic').id;
+ const physical=categories.find(c=>c.category==='Physical').id;
+ const sql="select create_bounty_v2($1,$2,'Help me with this task and discuss the result',25,'Agreed task completed',30,$3,$4,null,null,$5) as id";
+ const title='Tutoring: explain integration by parts';
+ const id=(await as(owner,sql,[academic,title,'remote',null,randomUUID()])).rows[0].id;
+ assert.deepEqual((await as(owner,'select category,title from bounties where id=$1',[id])).rows[0],{category:'Academic',title});
+ assert.ok((await as(owner,"select id from bounties where category='Academic' and id=$1",[id])).rows.length);
+ const moving=(await as(owner,sql,[physical,'Help move a desk across campus','campus','Campus housing',randomUUID()])).rows[0].id;
+ assert.equal((await as(owner,'select category from bounties where id=$1',[moving])).rows[0].category,'Physical');
+ await assert.rejects(()=>as(owner,sql,[physical,'Help move a desk across campus','remote',null,randomUUID()]));
+ await assert.rejects(()=>as(owner,sql,[randomUUID(),title,'remote',null,randomUUID()]));
+ assert.ok((await as(owner,"select id from bounty_templates where title='Calculus study session'")).rows.length);
+});
 test('beta enrollment requires confirmed email, is reversible, and preserves student accounts',async()=>{
  await admin('select set_beta_access(false)');
  const tester=randomUUID(),unconfirmed=randomUUID();
@@ -171,4 +187,22 @@ test('dispute resolution requires operator access and returns reserved credits o
  await admin("select resolve_bounty_dispute($1,false,'Reviewed and agreed refund',$2)",[id,key]);await admin("select resolve_bounty_dispute($1,false,'Reviewed and agreed refund',$2)",[id,key]);
  assert.equal((await as(owner,'select available_balance from credit_accounts')).rows[0].available_balance,before);
  assert.equal((await one('select status from bounties where id=$1',[id])).status,'cancelled');
+});
+
+test('email queue is private, deduplicated, opt-out aware and requires confirmed email',async()=>{
+ const recipient=randomUUID(),unconfirmed=randomUUID();
+ await admin("insert into auth.users(id,email,email_confirmed_at) values($1,'emailtester@ucla.edu',now()),($2,'unconfirmedmail@ucla.edu',null)",[recipient,unconfirmed]);
+ await admin("update profiles set verification_status='verified' where id in ($1,$2)",[recipient,unconfirmed]);
+ await admin("insert into notification_preferences(profile_id,quiet_start,quiet_end) values($1,0,0),($2,0,0)",[recipient,unconfirmed]);
+ const first=(await admin("insert into notifications(profile_id,kind,message,dedupe_key) values($1,'submitted','Task status update',$2) returning id",[recipient,randomUUID()])).rows[0].id;
+ await admin("insert into notifications(profile_id,kind,message,dedupe_key) values($1,'submitted','Task status update',$2)",[unconfirmed,randomUUID()]);
+ await assert.rejects(()=>as(recipient,'select * from email_deliveries'));
+ await assert.rejects(()=>as(recipient,'select * from claim_email_deliveries()'));
+ const claim=(await admin('select * from claim_email_deliveries()')).rows;
+ assert.equal(claim.length,1);assert.equal(claim[0].notification_id,first);
+ assert.equal((await admin('select * from claim_email_deliveries()')).rows.length,0);
+ await as(recipient,'update notification_preferences set email_status_enabled=false');
+ assert.equal((await admin('select email_delivery_allowed($1) as allowed',[first])).rows[0].allowed,false);
+ await admin("update email_deliveries set next_attempt_at=now()-interval '1 minute'");
+ assert.equal((await admin('select * from claim_email_deliveries()')).rows.length,0);
 });

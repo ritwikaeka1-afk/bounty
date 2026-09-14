@@ -1,0 +1,35 @@
+name: Deliver Bounty notifications
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bounty-notification-delivery
+  cancel-in-progress: false
+jobs:
+  deliver:
+    if: vars.NOTIFICATIONS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - name: Run notification worker
+        env:
+          SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          JOB_SECRET: ${{ secrets.NOTIFICATION_JOB_SECRET }}
+        run: |
+          node --input-type=module <<'JS'
+          const { SITE_URL, JOB_SECRET } = process.env;
+          if (!SITE_URL || !JOB_SECRET) throw new Error('Missing notification URL or job secret');
+          const endpoint = new URL('/api/notifications/run', SITE_URL);
+          if (endpoint.protocol !== 'https:') throw new Error('HTTPS is required');
+          const response = await fetch(endpoint, { method: 'POST', redirect: 'error', headers: { Authorization: `Bearer ${JOB_SECRET}` }, signal: AbortSignal.timeout(240000) });
+          if (!response.ok) throw new Error(`Notification worker returned ${response.status}`);
+          const result = await response.json();
+          console.log(JSON.stringify({ generated: result.generated, email: result.email, push: result.push, sent: result.sent, failed: result.failed }));
+          if (result.email?.status !== 'configured' || result.email?.failed || result.failed) throw new Error('Notification delivery needs attention');
+          JS

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import webpush from "web-push";
 import { brand } from "../../../../lib/brand";
+import { deliverEmail } from "../../../../lib/notification-email";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
@@ -16,8 +17,10 @@ export async function POST(request: Request) {
   const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data:generated,error}=await db.rpc("generate_bounty_reminders");
   if(error)return NextResponse.json({error:"Reminder generation failed"},{status:500});
+  let email;
+  try { email=await deliverEmail(db); } catch { return NextResponse.json({error:"Email worker failed"},{status:500}); }
   const pub=process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,priv=process.env.VAPID_PRIVATE_KEY,subject=process.env.VAPID_SUBJECT;
-  if(!pub||!priv||!subject)return NextResponse.json({generated,push:"not configured"});
+  if(!pub||!priv||!subject)return NextResponse.json({generated,email,push:"not configured"});
   webpush.setVapidDetails(subject,pub,priv);
   const {data:jobs,error:claimError}=await db.rpc("claim_push_deliveries");
   if(claimError)return NextResponse.json({error:"Push queue claim failed"},{status:500});
@@ -48,5 +51,5 @@ export async function POST(request: Request) {
       else await db.from("push_deliveries").update({last_error:status?`Transport status ${status}`:"Push delivery failed"}).eq("notification_id",job.notification_id).eq("subscription_id",job.subscription_id);
     }
   }
-  return NextResponse.json({generated,sent,failed});
+  return NextResponse.json({generated,email,sent,failed});
 }
