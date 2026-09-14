@@ -33,6 +33,22 @@ before(async()=>{
  }
 });
 after(()=>db.close());
+test('fixed categories accept custom titles and keep legacy templates intact',async()=>{
+ const categories=(await as(owner,"select id,category from bounty_templates where subcategory='Category' order by category")).rows;
+ assert.deepEqual(categories.map(c=>c.category),['Academic','Career','Creative','Errands','Events','Physical','Tech']);
+ const academic=categories.find(c=>c.category==='Academic').id;
+ const physical=categories.find(c=>c.category==='Physical').id;
+ const sql="select create_bounty_v2($1,$2,'Help me with this task and discuss the result',25,'Agreed task completed',30,$3,$4,null,null,$5) as id";
+ const title='Tutoring: explain integration by parts';
+ const id=(await as(owner,sql,[academic,title,'remote',null,randomUUID()])).rows[0].id;
+ assert.deepEqual((await as(owner,'select category,title from bounties where id=$1',[id])).rows[0],{category:'Academic',title});
+ assert.ok((await as(owner,"select id from bounties where category='Academic' and id=$1",[id])).rows.length);
+ const moving=(await as(owner,sql,[physical,'Help move a desk across campus','campus','Campus housing',randomUUID()])).rows[0].id;
+ assert.equal((await as(owner,'select category from bounties where id=$1',[moving])).rows[0].category,'Physical');
+ await assert.rejects(()=>as(owner,sql,[physical,'Help move a desk across campus','remote',null,randomUUID()]));
+ await assert.rejects(()=>as(owner,sql,[randomUUID(),title,'remote',null,randomUUID()]));
+ assert.ok((await as(owner,"select id from bounty_templates where title='Calculus study session'")).rows.length);
+});
 test('beta enrollment requires confirmed email, is reversible, and preserves student accounts',async()=>{
  await admin('select set_beta_access(false)');
  const tester=randomUUID(),unconfirmed=randomUUID();
