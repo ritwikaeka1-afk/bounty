@@ -10,8 +10,8 @@
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "cap:sync": "cap sync",
-    "cap:ios": "cap open ios",
-    "cap:android": "cap open android",
+    "cap:ios": "npm run native:prepare && cap open ios",
+    "cap:android": "npm run native:prepare && cap open android",
     "native:prepare": "node scripts/setup-native.mjs"
   },
   "dependencies": {
