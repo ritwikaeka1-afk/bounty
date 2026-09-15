@@ -21,6 +21,8 @@ npx cap open android
 
 Run `npm run native:prepare` once after cloning to create the `ios/` and `android/` projects, and again whenever Capacitor dependencies or native assets change. The native shells intentionally point to the canonical HTTPS service, so users always receive the same current Bounty interface and backend as the website.
 
+`npm run cap:android` and `npm run cap:ios` run this preparation step automatically before opening Android Studio or Xcode. Because the native shells load `https://joinbounty.dev`, website changes appear in the installed app after the website deployment completes; opening Android Studio alone cannot display an unmerged local web change.
+
 ## Open website links in the app
 
 Android App Links are added automatically by `npm run native:prepare`. Before a release, set `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT` in Azure to the SHA-256 certificate fingerprint used to sign the release, then verify that `https://joinbounty.dev/.well-known/assetlinks.json` returns the association file. When Google Play App Signing is enabled, use the Play **App signing key certificate** fingerprint; during local release testing, include the upload-key fingerprint too, separated by a comma.
