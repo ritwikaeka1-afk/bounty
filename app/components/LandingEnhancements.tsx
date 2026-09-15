@@ -32,6 +32,6 @@ export function LandingEnhancements() {
   <div className="trust-bar" aria-label="Bounty trust principles"><span><strong>Internal credits</strong> only</span><span><strong>Private details</strong> after acceptance</span><span><strong>Reviews</strong> after completion</span></div>
   <div className="sample-heading"><div><p className="eyebrow">SAMPLE DATA</p><h2>What an open bounty looks like.</h2></div><p>These examples show the format. They are not live listings.</p></div>
   <div className="sample-grid">{samples.map(sample => <article className={`sample-card sample-${sample.category.toLowerCase()}`} key={sample.category}><div><span className="category">{sample.category}</span><strong>{sample.credits} credits</strong></div><h3>{sample.title}</h3><p>{sample.meta}</p><small>Sample listing</small></article>)}</div>
- </section>, home)}{footer && createPortal(<nav className="footer-extras" aria-label="More Bounty links"><a href="/">About</a><a href="/?view=help">FAQ</a><a href="/?view=help#terms">Terms of Service</a><a href="/?view=help#guidelines">Community Guidelines</a><a href="/?view=help">Contact</a></nav>, footer)}</>;
+ </section>, home)}{footer && createPortal(<nav className="footer-extras" aria-label="More Bounty links"><a href="/?view=about">About</a><a href="/?view=faq">FAQ</a><a href="/?view=terms">Terms of Service</a><a href="/?view=guidelines">Community Guidelines</a><a href="/?view=contact">Contact</a><a href="/?view=suggestions">Suggestions</a></nav>, footer)}</>;
 }
 
