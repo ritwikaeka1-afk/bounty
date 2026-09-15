@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./landing-enhancements.css";
+import "./public-info.css";
 import { brand } from "../lib/brand";
 import { LandingEnhancements } from "./components/LandingEnhancements";
+import { PublicInfoPages } from "./components/PublicInfoPages";
 
 export const metadata: Metadata = {
   metadataBase: new URL(brand.siteUrl),
@@ -13,6 +15,6 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}<LandingEnhancements /></body></html>;
+  return <html lang="en"><body>{children}<LandingEnhancements /><PublicInfoPages /></body></html>;
 }
 
