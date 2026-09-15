@@ -81,6 +81,12 @@ test('names are private and legacy display names remain intact',async()=>{
  const names=(await as(owner,'select * from profile_names')).rows;assert.equal(names.length,1);assert.equal(names[0].last_name,'O’Neil');
  await as(owner,"select save_my_names('李','')");assert.equal((await one('select display_name from profiles')).display_name,'Owner');
 });
+test('public profiles and listings reject contact details, and internal helpers are not callable',async()=>{
+ await assert.rejects(()=>as(owner,"select update_my_profile_details('Owner','Email me at owner@example.com',array[]::text[],'beginner','',null,array[]::text[],null)"));
+ await assert.rejects(()=>as(owner,"select create_bounty_v2($1,'Call 310-555-0199','Description with more than twenty characters',25,'Done',30,'remote',null,null,null,$2)",[template,randomUUID()]));
+ await db.exec('set role anon');
+ await assert.rejects(()=>db.query("select profile_initials('Private Name')"));
+});
 test('custom rewards persist; invalid, overspending and anonymous requests fail',async()=>{
  const id=await create(37);assert.equal((await as(owner,'select reward_credits from bounties where id=$1',[id])).rows[0].reward_credits,37);
  for(const amount of [0,-1,100001,501])await assert.rejects(()=>create(amount));
@@ -206,3 +212,4 @@ test('email queue is private, deduplicated, opt-out aware and requires confirmed
  await admin("update email_deliveries set next_attempt_at=now()-interval '1 minute'");
  assert.equal((await admin('select * from claim_email_deliveries()')).rows.length,0);
 });
+
