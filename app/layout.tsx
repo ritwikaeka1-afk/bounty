@@ -5,6 +5,7 @@ import "./public-info.css";
 import { brand } from "../lib/brand";
 import { LandingEnhancements } from "./components/LandingEnhancements";
 import { PublicInfoPages } from "./components/PublicInfoPages";
+import { NativeAppBridge } from "./components/NativeAppBridge";
 
 export const metadata: Metadata = {
   metadataBase: new URL(brand.siteUrl),
@@ -15,6 +16,6 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}<LandingEnhancements /><PublicInfoPages /></body></html>;
+  return <html lang="en"><body>{children}<LandingEnhancements /><PublicInfoPages /><NativeAppBridge /></body></html>;
 }
 

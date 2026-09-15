@@ -8,9 +8,17 @@
     "start": "next start",
     "lint": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cap:sync": "cap sync",
+    "cap:ios": "cap open ios",
+    "cap:android": "cap open android",
+    "native:prepare": "node scripts/setup-native.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.115.0",
     "next": "^16.3.4",
@@ -19,6 +27,8 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
     "@electric-sql/pglite": "^0.5.8",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.10",
@@ -27,3 +37,4 @@
     "typescript": "^5.8.2"
   }
 }
+
