@@ -23,7 +23,7 @@ Run `npm run native:prepare` once after cloning to create the `ios/` and `androi
 
 ## Open website links in the app
 
-Android App Links are added automatically by `npm run native:prepare`. Before a release, set `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT` in Azure to the SHA-256 certificate fingerprint used to sign the release, then verify that `https://joinbounty.dev/.well-known/assetlinks.json` returns the association file.
+Android App Links are added automatically by `npm run native:prepare`. Before a release, set `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT` in Azure to the SHA-256 certificate fingerprint used to sign the release, then verify that `https://joinbounty.dev/.well-known/assetlinks.json` returns the association file. When Google Play App Signing is enabled, use the Play **App signing key certificate** fingerprint; during local release testing, include the upload-key fingerprint too, separated by a comma.
 
 For iOS, in Xcode select the App target, add the **Associated Domains** capability, and add `applinks:joinbounty.dev`. Set `APPLE_APP_TEAM_ID` in Azure to your Apple Developer Team ID. Then verify that `https://joinbounty.dev/.well-known/apple-app-site-association` returns the association file. Website visitors without the app continue to use the website normally.
 
