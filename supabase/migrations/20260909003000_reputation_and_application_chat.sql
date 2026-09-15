@@ -1,6 +1,6 @@
 begin;
 -- Public identities are initials. Full names remain in owner-only tables/metadata.
-create function public.profile_initials(p_name text) returns text language sql immutable set search_path=public as $$
+create or replace function public.profile_initials(p_name text) returns text language sql immutable set search_path=public as $$
  select coalesce(nullif(upper(left(parts[1],1)||case when cardinality(parts)>1 then left(parts[cardinality(parts)],1) else '' end),''),'S')
  from (select regexp_split_to_array(btrim(coalesce(p_name,'')), '\s+') parts) s;
 $$;
@@ -61,3 +61,4 @@ end $$;
 revoke all on function public.withdraw_proposal(uuid) from public,anon;
 grant execute on function public.withdraw_proposal(uuid) to authenticated;
 commit;
+
