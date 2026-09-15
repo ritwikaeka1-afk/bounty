@@ -13,8 +13,10 @@ export function NativeAppBridge() {
 
     const listener = App.addListener("appUrlOpen", ({ url }) => {
       const callback = new URL(url);
-      if (callback.protocol !== "bounty:") return;
-      window.location.assign(`${productionOrigin}/?${callback.searchParams.toString()}`);
+      const isMagicLink = callback.protocol === "bounty:" && callback.hostname === "auth";
+      const isVerifiedWebLink = callback.protocol === "https:" && callback.hostname === "joinbounty.dev";
+      if (!isMagicLink && !isVerifiedWebLink) return;
+      window.location.assign(isMagicLink ? `${productionOrigin}/?${callback.searchParams.toString()}` : callback.toString());
     });
 
     return () => { void listener.then(handle => handle.remove()); };

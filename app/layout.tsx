@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./landing-enhancements.css";
 import "./public-info.css";
+import "./security.css";
 import { brand } from "../lib/brand";
 import { LandingEnhancements } from "./components/LandingEnhancements";
 import { PublicInfoPages } from "./components/PublicInfoPages";

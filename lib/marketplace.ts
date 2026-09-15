@@ -1,5 +1,26 @@
 import { createClient } from "./supabase/client";
 
+const publicImageTypes = ["image/jpeg", "image/png", "image/webp"];
+
+async function stripImageMetadata(file: File): Promise<File> {
+  if (!publicImageTypes.includes(file.type) || file.size > 5 * 1024 * 1024)
+    throw new Error("Use a JPEG, PNG, or WebP image up to 5 MB.");
+  const bitmap = await createImageBitmap(file);
+  const largestEdge = Math.max(bitmap.width, bitmap.height);
+  const scale = largestEdge > 2048 ? 2048 / largestEdge : 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Your browser could not prepare this image safely.");
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const type = file.type === "image/png" ? "image/png" : "image/jpeg";
+  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, 0.9));
+  if (!blob) throw new Error("Your browser could not prepare this image safely.");
+  return new File([blob], `bounty-image.${type === "image/png" ? "png" : "jpg"}`, { type });
+}
+
 /** Browser-safe wrappers. The database, not the UI, enforces authorization and balances. */
 export async function createBounty(input: { title: string; description: string; category: string; rewardCredits: number; dueAt?: string }) {
   const supabase = createClient();
@@ -32,10 +53,10 @@ export async function uploadBountyImages(bountyId: string, files: File[]) {
   if (!userData.user) throw new Error("Sign-in required");
   const urls: string[] = [];
   for (const [index, file] of files.slice(0, 4).entries()) {
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error("Use JPEG, PNG, or WebP images up to 5 MB.");
-    const extension = file.name.split(".").pop() || "jpg";
+    const safeFile = await stripImageMetadata(file);
+    const extension = safeFile.type === "image/png" ? "png" : "jpg";
     const path = `${userData.user.id}/${bountyId}/${Date.now()}-${index}.${extension}`;
-    const { error } = await supabase.storage.from("bounty-images").upload(path, file, { contentType: file.type });
+    const { error } = await supabase.storage.from("bounty-images").upload(path, safeFile, { contentType: safeFile.type });
     if (error) throw error;
     urls.push(supabase.storage.from("bounty-images").getPublicUrl(path).data.publicUrl);
   }
@@ -84,13 +105,13 @@ export async function updateMyProfileDetails(input: {
 }
 
 export async function uploadProfileAvatar(file: File) {
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error("Use a JPEG, PNG, or WebP image up to 5 MB.");
+  const safeFile = await stripImageMetadata(file);
   const supabase = createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Sign-in required");
-  const extension = file.name.split(".").pop() || "jpg";
+  const extension = safeFile.type === "image/png" ? "png" : "jpg";
   const path = `${userData.user.id}/avatar-${Date.now()}.${extension}`;
-  const { error } = await supabase.storage.from("profile-avatars").upload(path, file, { upsert: true, contentType: file.type });
+  const { error } = await supabase.storage.from("profile-avatars").upload(path, safeFile, { upsert: true, contentType: safeFile.type });
   if (error) throw error;
   return supabase.storage.from("profile-avatars").getPublicUrl(path).data.publicUrl;
 }
@@ -109,3 +130,4 @@ export async function completeBounty(bountyId: string, idempotencyKey = crypto.r
   const { error } = await createClient().rpc("complete_bounty", { p_bounty_id: bountyId, p_idempotency_key: idempotencyKey });
   if (error) throw error;
 }
+

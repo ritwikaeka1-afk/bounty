@@ -21,10 +21,16 @@ npx cap open android
 
 Run `npm run native:prepare` once after cloning to create the `ios/` and `android/` projects, and again whenever Capacitor dependencies or native assets change. The native shells intentionally point to the canonical HTTPS service, so users always receive the same current Bounty interface and backend as the website.
 
+## Open website links in the app
+
+Android App Links are added automatically by `npm run native:prepare`. Before a release, set `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT` in Azure to the SHA-256 certificate fingerprint used to sign the release, then verify that `https://joinbounty.dev/.well-known/assetlinks.json` returns the association file.
+
+For iOS, in Xcode select the App target, add the **Associated Domains** capability, and add `applinks:joinbounty.dev`. Set `APPLE_APP_TEAM_ID` in Azure to your Apple Developer Team ID. Then verify that `https://joinbounty.dev/.well-known/apple-app-site-association` returns the association file. Website visitors without the app continue to use the website normally.
+
 ## Release checklist
 
 1. Confirm `https://joinbounty.dev` is live and its HTTPS certificate is valid.
-2. In Supabase Auth, add `https://joinbounty.dev/**` to redirect URLs.
+2. In Supabase Auth, add both `https://joinbounty.dev/**` and `bounty://auth/callback` to redirect URLs.
 3. Configure Apple Push Notification service and Firebase Cloud Messaging before enabling native push delivery.
 4. In Xcode, select the paid Apple Developer team and set the final bundle identifier.
 5. In Android Studio, create the upload keystore and set the final application ID.
