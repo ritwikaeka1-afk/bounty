@@ -16,14 +16,24 @@ export async function POST(request: Request) {
   if(!url||!key)return NextResponse.json({error:"Notification storage is not configured"},{status:503});
   const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data:generated,error}=await db.rpc("generate_bounty_reminders");
-  if(error)return NextResponse.json({error:"Reminder generation failed"},{status:500});
+  if(error){
+    console.error("Notification worker failed", {stage:"reminders",code:error.code,message:error.message,timestamp:new Date().toISOString()});
+    return NextResponse.json({error:"Notification worker failed",stage:"reminders"},{status:500});
+  }
   let email;
-  try { email=await deliverEmail(db); } catch { return NextResponse.json({error:"Email worker failed"},{status:500}); }
+  try { email=await deliverEmail(db); }
+  catch(error) {
+    console.error("Notification worker failed", {stage:"email",error:error instanceof Error?error.message:"Unknown error",timestamp:new Date().toISOString()});
+    return NextResponse.json({error:"Notification worker failed",stage:"email"},{status:500});
+  }
   const pub=process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,priv=process.env.VAPID_PRIVATE_KEY,subject=process.env.VAPID_SUBJECT;
   if(!pub||!priv||!subject)return NextResponse.json({generated,email,push:"not configured"});
   webpush.setVapidDetails(subject,pub,priv);
   const {data:jobs,error:claimError}=await db.rpc("claim_push_deliveries");
-  if(claimError)return NextResponse.json({error:"Push queue claim failed"},{status:500});
+  if(claimError){
+    console.error("Notification worker failed", {stage:"push-queue",code:claimError.code,message:claimError.message,timestamp:new Date().toISOString()});
+    return NextResponse.json({error:"Notification worker failed",stage:"push-queue"},{status:500});
+  }
   let sent=0,failed=0;
   for(const job of jobs||[]){
     try{
@@ -53,3 +63,4 @@ export async function POST(request: Request) {
   }
   return NextResponse.json({generated,email,sent,failed});
 }
+
