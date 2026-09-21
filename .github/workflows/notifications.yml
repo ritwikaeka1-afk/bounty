@@ -24,7 +24,11 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           const { SITE_URL, JOB_SECRET } = process.env;
-          if (!SITE_URL || !JOB_SECRET) throw new Error('Missing notification URL or job secret');
+          const missing = [
+            !SITE_URL && 'NEXT_PUBLIC_SITE_URL repository variable',
+            !JOB_SECRET && 'NOTIFICATION_JOB_SECRET repository secret',
+          ].filter(Boolean);
+          if (missing.length) throw new Error(`Missing ${missing.join(' and ')}`);
           const endpoint = new URL('/api/notifications/run', SITE_URL);
           if (endpoint.protocol !== 'https:') throw new Error('HTTPS is required');
           const response = await fetch(endpoint, {
