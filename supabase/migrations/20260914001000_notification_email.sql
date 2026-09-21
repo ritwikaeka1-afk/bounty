@@ -86,7 +86,7 @@ begin
   ), claimed as (
     update email_deliveries d set attempts=d.attempts+1,next_attempt_at=now()+interval '10 minutes'
     from candidates c where d.notification_id=c.notification_id returning d.notification_id
-  ) select n.id,n.profile_id,n.bounty_id,n.kind,u.email from claimed c
+  ) select n.id,n.profile_id,n.bounty_id,n.kind,u.email::text from claimed c
     join notifications n on n.id=c.notification_id join auth.users u on u.id=n.profile_id;
 end $$;
 
@@ -127,3 +127,4 @@ revoke all on function public.queue_notification_email(),public.notify_closed_bo
  public.email_delivery_allowed(uuid),public.claim_email_deliveries() from public,anon,authenticated;
 grant execute on function public.email_delivery_allowed(uuid),public.claim_email_deliveries() to service_role;
 commit;
+
